@@ -1,4 +1,6 @@
 import torch
+import random
+from bisect import insort
 
 
 def train_model(model, training_indices, num_epochs=100, lr=0.01):
@@ -25,6 +27,13 @@ def train_model(model, training_indices, num_epochs=100, lr=0.01):
             print(f"Epoch {epoch}, Loss: {total_loss:.4f}")
 
 
+def manhattan_distance(node1, node2):
+    """
+    Compute Manhattan distance between two nodes.
+    """
+    return abs(node1[0] - node2[0]) + abs(node1[1] - node2[1])
+
+
 def predict_next_node_with_bias(model, current_node, node_to_idx, idx_to_node, graph, visited, goal):
     """
     Predict the next node with goal bias using Manhattan distance as a heuristic.
@@ -36,67 +45,49 @@ def predict_next_node_with_bias(model, current_node, node_to_idx, idx_to_node, g
     neighbor_scores = {}
     for neighbor in neighbors:
         if neighbor not in visited:
-            # Manhattan distance to goal as a heuristic
-            distance_to_goal = abs(neighbor[0] - goal[0]) + abs(neighbor[1] - goal[1])
-            neighbor_scores[neighbor] = next_probs[node_to_idx[neighbor]] / (distance_to_goal + 1e-6)  # Avoid division by zero
+            distance_to_goal = manhattan_distance(neighbor, goal)
+            neighbor_scores[neighbor] = next_probs[node_to_idx[neighbor]] / (distance_to_goal + 1e-6)
 
     if not neighbor_scores:
         return None  # Dead end
-    return max(neighbor_scores, key=neighbor_scores.get)  # Neighbor with the highest adjusted score
+    return max(neighbor_scores, key=neighbor_scores.get)
 
 
-def simulate_path_with_pruning_and_bias(model, start, goal, node_to_idx, idx_to_node, graph, max_steps=100):
+def simulate_path_with_pruning_and_exploration(
+    model, start, goal, node_to_idx, idx_to_node, graph, explore=True, max_steps=200
+):
     """
-    Simulate a path from start to goal with pruning and goal bias.
-    """
-    current_node = start
-    path = [current_node]
-    visited = set()
-    stack = []  # For backtracking
-
-    for _ in range(max_steps):
-        visited.add(current_node)
-        next_node = predict_next_node_with_bias(model, current_node, node_to_idx, idx_to_node, graph, visited, goal)
-
-        if next_node is None:  # Dead end, backtrack
-            if not stack:
-                print("Dead end encountered. No more moves.")
-                break
-            current_node = stack.pop()  # Backtrack to the previous node
-        else:
-            stack.append(current_node)  # Push the current node to the stack
-            path.append(next_node)
-            current_node = next_node
-
-        if current_node == goal:
-            print("Goal reached!")
-            break
-
-    # Prune the path
-    pruned_path = []
-    for node in path:
-        if node not in pruned_path:
-            pruned_path.append(node)
-
-    return pruned_path
-
-
-def simulate_path(model, start, goal, node_to_idx, idx_to_node, graph, max_steps=100):
-    """
-    Simulate a path from start to goal without pruning or goal bias (basic version).
+    Simulate a path with backtracking, pruning, goal bias, and optional exploration.
     """
     current_node = start
     path = [current_node]
     visited = set()
+    stack = []  # For prioritized backtracking
 
-    for _ in range(max_steps):
+    for step in range(max_steps):
         visited.add(current_node)
+
+        # Predict the next node
         next_node = predict_next_node_with_bias(model, current_node, node_to_idx, idx_to_node, graph, visited, goal)
 
+        # Handle dead ends or invalid predictions
         if next_node is None:
-            print("Dead end encountered. No more moves.")
-            break
+            if explore:
+                neighbors = [n for n in graph.neighbors(current_node) if n not in visited]
+                if neighbors:
+                    weights = [1 / (manhattan_distance(n, goal) + 1e-6) for n in neighbors]
+                    next_node = random.choices(neighbors, weights=weights, k=1)[0]  # Weighted random exploration
+            if next_node is None:  # Backtrack with priority
+                if not stack:
+                    print("Dead end encountered. No more moves.")
+                    break
+                current_node = stack.pop(0)  # Backtrack to the highest-priority node
+                continue
 
+        # Add current node to stack, sorted by priority
+        insort(stack, current_node, key=lambda n: manhattan_distance(n, goal))
+
+        # Update path and move to the next node
         path.append(next_node)
         current_node = next_node
 
@@ -104,4 +95,46 @@ def simulate_path(model, start, goal, node_to_idx, idx_to_node, graph, max_steps
             print("Goal reached!")
             break
 
-    return path
+    # Refine the path and return it
+    return refine_path(path, graph)
+
+
+def refine_path(path, graph):
+    """
+    Refine the simulated path by removing unnecessary loops.
+    """
+    refined_path = []
+    visited = set()
+
+    for i, node in enumerate(path):
+        if node not in visited:
+            refined_path.append(node)
+            visited.add(node)
+        elif i > 0 and node in graph.neighbors(refined_path[-1]):
+            # Preserve valid loops that connect to the last node
+            refined_path.append(node)
+
+    # Additional pruning: remove redundant connections
+    pruned_path = []
+    for i, node in enumerate(refined_path):
+        if i == 0 or i == len(refined_path) - 1 or refined_path[i - 1] in graph.neighbors(node):
+            pruned_path.append(node)
+
+    return pruned_path
+
+
+def compute_path_metrics(path, goal, optimal_path):
+    """
+    Compute metrics for the given path.
+    """
+    path_length = len(path)
+    optimal_length = len(optimal_path)
+    backtracking = len(path) - len(set(path))  # Nodes revisited
+
+    return {
+        "path_length": path_length,
+        "optimal_length": optimal_length,
+        "goal_reached": path[-1] == goal,
+        "efficiency": optimal_length / path_length if path_length > 0 else 0,
+        "backtracking": backtracking,
+    }
