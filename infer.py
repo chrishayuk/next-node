@@ -4,6 +4,7 @@ from train_utils import simulate_path_with_pruning_and_exploration
 from models import NodePredictor
 import torch
 import json
+import networkx as nx
 
 
 def load_maze(file_path):
@@ -25,6 +26,11 @@ def main():
     graph = maze_to_graph(maze)
     start = next((r, c) for r, row in enumerate(maze) for c, cell in enumerate(row) if cell == 'S')
     goal = next((r, c) for r, row in enumerate(maze) for c, cell in enumerate(row) if cell == 'G')
+
+    # Validate if a path exists between start and goal
+    if not nx.has_path(graph, start, goal):
+        print("No valid path exists from S to G in this maze.")
+        return
 
     # Load saved mappings and model state_dict
     saved_node_to_idx = torch.load("saved_models/node_to_idx.pth", weights_only=True)

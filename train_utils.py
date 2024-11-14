@@ -1,7 +1,7 @@
+import networkx as nx
 import torch
 import random
 from bisect import insort
-import networkx as nx
 
 
 def train_model(model, training_indices, num_epochs=100, lr=0.01):
@@ -47,10 +47,11 @@ def predict_next_node_with_bias(model, current_node, node_to_idx, idx_to_node, g
     for neighbor in neighbors:
         if neighbor not in visited:
             distance_to_goal = manhattan_distance(neighbor, goal)
-            connectivity_factor = len([nbr for nbr in graph.neighbors(neighbor) if nbr not in visited])
+            unexplored_factor = len([nbr for nbr in graph.neighbors(neighbor) if nbr not in visited])
+            scaling_factor = len(graph.nodes) / 100  # Adjust heuristic based on graph size
             neighbor_scores[neighbor] = (
-                next_probs[node_to_idx[neighbor]] / (distance_to_goal + 1e-6)
-            ) * (1 + connectivity_factor)
+                next_probs[node_to_idx[neighbor]] / ((distance_to_goal + 1e-6) * scaling_factor)
+            ) * (1 + unexplored_factor)
 
     if not neighbor_scores:
         return None  # Dead end
@@ -58,11 +59,13 @@ def predict_next_node_with_bias(model, current_node, node_to_idx, idx_to_node, g
 
 
 def simulate_path_with_pruning_and_exploration(
-    model, start, goal, node_to_idx, idx_to_node, graph, explore=True, max_steps=200
+    model, start, goal, node_to_idx, idx_to_node, graph, explore=True
 ):
     """
     Simulate a path with backtracking, pruning, goal bias, and optional exploration.
     """
+    max_steps = len(graph.nodes) * 2  # Dynamic step limit based on graph size
+    max_stack_size = len(graph.nodes) // 10  # Limit the size of the backtracking stack
     current_node = start
     path = [current_node]
     visited = set()
@@ -77,10 +80,9 @@ def simulate_path_with_pruning_and_exploration(
         # Handle dead ends or invalid predictions
         if next_node is None:
             if explore:
-                neighbors = [n for n in graph.neighbors(current_node) if n not in visited]
-                if neighbors:
-                    weights = [1 / (manhattan_distance(n, goal) + 1e-6) for n in neighbors]
-                    next_node = random.choices(neighbors, weights=weights, k=1)[0]  # Weighted random exploration
+                unvisited_neighbors = [n for n in graph.nodes if n not in visited]
+                if unvisited_neighbors:
+                    next_node = random.choice(unvisited_neighbors)  # Random exploration of unvisited nodes
             if next_node is None:  # Backtrack with priority
                 if not stack:
                     print("Dead end encountered. No more moves.")
@@ -89,7 +91,9 @@ def simulate_path_with_pruning_and_exploration(
                 continue
 
         # Add current node to stack, sorted by priority
-        insort(stack, current_node, key=lambda n: (manhattan_distance(n, goal), len([nbr for nbr in graph.neighbors(n) if nbr not in visited])))
+        insort(stack, current_node, key=lambda n: manhattan_distance(n, goal))
+        if len(stack) > max_stack_size:  # Prune the stack if it exceeds the limit
+            stack = stack[:max_stack_size]
 
         # Update path and move to the next node
         path.append(next_node)
@@ -106,22 +110,29 @@ def simulate_path_with_pruning_and_exploration(
 def refine_path_with_shortest_path(path, graph):
     """
     Refine the path by comparing it to the shortest path in the graph.
+    If no valid shortest path exists, return the original path.
     """
-    shortest_path = nx.shortest_path(graph, source=path[0], target=path[-1])
-    refined_path = []
-    for node in path:
-        if node in shortest_path and (len(refined_path) == 0 or node != refined_path[-1]):
-            refined_path.append(node)
-    return refined_path
+    try:
+        shortest_path = nx.shortest_path(graph, source=path[0], target=path[-1])
+        refined_path = []
+        for node in path:
+            if node in shortest_path and (len(refined_path) == 0 or node != refined_path[-1]):
+                refined_path.append(node)
+        return refined_path
+    except nx.NetworkXNoPath:
+        print("No valid shortest path found. Returning simulated path as-is.")
+        return path
 
 
-def compute_path_metrics(path, goal, optimal_path):
+
+def compute_path_metrics(path, goal, optimal_path, graph):
     """
     Compute metrics for the given path.
     """
     path_length = len(path)
     optimal_length = len(optimal_path)
     backtracking = len(path) - len(set(path))  # Nodes revisited
+    visited_nodes = len(set(path)) / len(graph.nodes)  # Percentage of graph explored
 
     return {
         "path_length": path_length,
@@ -129,4 +140,5 @@ def compute_path_metrics(path, goal, optimal_path):
         "goal_reached": path[-1] == goal,
         "efficiency": optimal_length / path_length if path_length > 0 else 0,
         "backtracking": backtracking,
+        "graph_explored": visited_nodes,
     }
