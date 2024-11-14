@@ -1,11 +1,11 @@
+# infer.py
 import argparse
-from maze_utils import maze_to_graph, visualize_solution
-from train_utils import simulate_path_with_pruning_and_exploration
-from models import NodePredictor
 import torch
 import json
 import networkx as nx
-
+from maze_utils import maze_to_graph, visualize_solution
+from train_utils import simulate_path_with_pruning_and_exploration
+from models import NodePredictor
 
 def load_maze(file_path):
     """

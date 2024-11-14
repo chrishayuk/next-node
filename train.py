@@ -1,3 +1,4 @@
+# train.py
 from maze_utils import maze_to_graph, generate_random_maze
 from data_utils import generate_goal_biased_training_data
 from models import NodePredictor

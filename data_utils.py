@@ -1,8 +1,9 @@
+# data_utils.py
 import networkx as nx
-
 from networkx.algorithms.shortest_paths.weighted import single_source_dijkstra_path_length
 
 def generate_paths(G, start, goal):
+    # return the shortest path from source to start to goal for the graph
     return nx.shortest_path(G, source=start, target=goal)
 
 def generate_goal_biased_training_data(G, start, goal):
