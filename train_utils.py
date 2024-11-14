@@ -1,6 +1,7 @@
 import torch
 import random
 from bisect import insort
+import networkx as nx
 
 
 def train_model(model, training_indices, num_epochs=100, lr=0.01):
@@ -46,7 +47,10 @@ def predict_next_node_with_bias(model, current_node, node_to_idx, idx_to_node, g
     for neighbor in neighbors:
         if neighbor not in visited:
             distance_to_goal = manhattan_distance(neighbor, goal)
-            neighbor_scores[neighbor] = next_probs[node_to_idx[neighbor]] / (distance_to_goal + 1e-6)
+            connectivity_factor = len([nbr for nbr in graph.neighbors(neighbor) if nbr not in visited])
+            neighbor_scores[neighbor] = (
+                next_probs[node_to_idx[neighbor]] / (distance_to_goal + 1e-6)
+            ) * (1 + connectivity_factor)
 
     if not neighbor_scores:
         return None  # Dead end
@@ -85,7 +89,7 @@ def simulate_path_with_pruning_and_exploration(
                 continue
 
         # Add current node to stack, sorted by priority
-        insort(stack, current_node, key=lambda n: manhattan_distance(n, goal))
+        insort(stack, current_node, key=lambda n: (manhattan_distance(n, goal), len([nbr for nbr in graph.neighbors(n) if nbr not in visited])))
 
         # Update path and move to the next node
         path.append(next_node)
@@ -96,31 +100,19 @@ def simulate_path_with_pruning_and_exploration(
             break
 
     # Refine the path and return it
-    return refine_path(path, graph)
+    return refine_path_with_shortest_path(path, graph)
 
 
-def refine_path(path, graph):
+def refine_path_with_shortest_path(path, graph):
     """
-    Refine the simulated path by removing unnecessary loops.
+    Refine the path by comparing it to the shortest path in the graph.
     """
+    shortest_path = nx.shortest_path(graph, source=path[0], target=path[-1])
     refined_path = []
-    visited = set()
-
-    for i, node in enumerate(path):
-        if node not in visited:
+    for node in path:
+        if node in shortest_path and (len(refined_path) == 0 or node != refined_path[-1]):
             refined_path.append(node)
-            visited.add(node)
-        elif i > 0 and node in graph.neighbors(refined_path[-1]):
-            # Preserve valid loops that connect to the last node
-            refined_path.append(node)
-
-    # Additional pruning: remove redundant connections
-    pruned_path = []
-    for i, node in enumerate(refined_path):
-        if i == 0 or i == len(refined_path) - 1 or refined_path[i - 1] in graph.neighbors(node):
-            pruned_path.append(node)
-
-    return pruned_path
+    return refined_path
 
 
 def compute_path_metrics(path, goal, optimal_path):
