@@ -5,6 +5,17 @@ import matplotlib.pyplot as plt
 import argparse
 from colorama import Fore, Style, Back
 
+def visualize_solution(maze, solution_path):
+    """
+    Visualize a solution path on a maze.
+    """
+    maze_copy = [row[:] for row in maze]
+    for r, c in solution_path:
+        if maze_copy[r][c] not in ['S', 'G']:
+            maze_copy[r][c] = '*'
+    for row in maze_copy:
+        print(' '.join(row))
+
 
 def visualize_maze_plot(maze):
     """
@@ -48,6 +59,17 @@ def visualize_maze_ascii_color(maze):
     print(ascii_maze)
 
 
+def visualize_solution_ascii(maze, solution_path):
+    """
+    Visualize a maze as ASCII art with the solution path.
+    """
+    maze_copy = [row[:] for row in maze]
+    for r, c in solution_path:
+        if maze_copy[r][c] not in ['S', 'G']:
+            maze_copy[r][c] = '*'
+    visualize_maze_ascii(maze_copy)
+
+
 def process_jsonl_file(dataset_path, num_mazes, mode):
     """
     Process a JSONL file and visualize mazes.
@@ -61,13 +83,16 @@ def process_jsonl_file(dataset_path, num_mazes, mode):
             visualize_maze(data["maze"], mode)
 
 
-def process_json_file(dataset_path, mode):
+def process_json_file(dataset_path, mode, solution_path=None):
     """
     Process a JSON file and visualize the single maze.
     """
     with open(dataset_path, "r") as f:
         maze = json.load(f)
-        visualize_maze(maze, mode)
+        if solution_path:
+            visualize_solution_ascii(maze, solution_path)
+        else:
+            visualize_maze(maze, mode)
 
 
 def visualize_maze(maze, mode):
@@ -84,7 +109,7 @@ def visualize_maze(maze, mode):
         print(f"Invalid mode: {mode}. Please choose 'ascii', 'ascii-color', or 'plot'.")
 
 
-def main(dataset_path, num_mazes, mode):
+def main(dataset_path, num_mazes, mode, solution_path=None):
     """
     Determine the dataset type and visualize mazes.
     """
@@ -92,7 +117,7 @@ def main(dataset_path, num_mazes, mode):
         if dataset_path.endswith(".jsonl"):
             process_jsonl_file(dataset_path, num_mazes, mode)
         elif dataset_path.endswith(".json"):
-            process_json_file(dataset_path, mode)
+            process_json_file(dataset_path, mode, solution_path)
         else:
             print("Unsupported file format. Please provide a .jsonl or .json file.")
     except FileNotFoundError:
@@ -125,7 +150,18 @@ if __name__ == "__main__":
         default="ascii-color",
         help="Visualization mode: 'ascii', 'ascii-color', or 'plot'. Default is 'ascii-color'."
     )
+    parser.add_argument(
+        "--solution-path",
+        type=str,
+        help="Path to the solution file containing the solution path."
+    )
     args = parser.parse_args()
 
+    # Parse solution path if provided
+    solution = None
+    if args.solution_path:
+        with open(args.solution_path, "r") as f:
+            solution = json.load(f)
+
     # Run main function
-    main(args.dataset_path, args.num_mazes, args.mode)
+    main(args.dataset_path, args.num_mazes, args.mode, solution)

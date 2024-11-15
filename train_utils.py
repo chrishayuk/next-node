@@ -5,7 +5,7 @@ import random
 from bisect import insort
 
 
-def train_model(model, training_indices, num_epochs=100, lr=0.01):
+def train_model(model, training_indices, num_epochs=200, lr=0.001):
     """
     Train the NodePredictor model using CrossEntropyLoss.
     """

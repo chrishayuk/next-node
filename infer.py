@@ -3,9 +3,10 @@ import argparse
 import torch
 import json
 import networkx as nx
-from maze_utils import maze_to_graph, visualize_solution
-from train_utils import simulate_path_with_pruning_and_exploration
+from maze.maze_dataset_visualizer import visualize_solution_ascii
+from maze.maze_to_graph_converter import maze_to_graph
 from models import NodePredictor
+from train_utils import simulate_path_with_pruning_and_exploration
 
 def load_maze(file_path):
     """
@@ -58,8 +59,7 @@ def main():
     print("Simulated Path:", path)
 
     # Visualize the solution
-    visualize_solution(maze, path)
-
+    visualize_solution_ascii(maze, path)
 
 if __name__ == "__main__":
     main()
