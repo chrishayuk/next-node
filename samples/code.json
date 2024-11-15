@@ -1,0 +1,25 @@
+{
+    "context_representation": [
+      ["if (x > 0):", "    print('Positive')", "else:", "    print('Negative')"]
+    ],
+    "graph": {
+      "nodes": [
+        {"id": "Start", "label": "Start", "embedding": [0.1, 0.2, 0.3]},
+        {"id": "Condition", "label": "x > 0", "embedding": [0.4, 0.5, 0.6]},
+        {"id": "PositiveBlock", "label": "print('Positive')", "embedding": [0.7, 0.8, 0.9]},
+        {"id": "NegativeBlock", "label": "print('Negative')", "embedding": [1.0, 1.1, 1.2]},
+        {"id": "End", "label": "End", "embedding": [1.3, 1.4, 1.5]}
+      ],
+      "edges": [
+        {"source": "Start", "target": "Condition", "weight": 1.0},
+        {"source": "Condition", "target": "PositiveBlock", "weight": 0.5},
+        {"source": "Condition", "target": "NegativeBlock", "weight": 0.5},
+        {"source": "PositiveBlock", "target": "End", "weight": 1.0},
+        {"source": "NegativeBlock", "target": "End", "weight": 1.0}
+      ]
+    },
+    "context_embedding": [2.0, 2.1, 2.2, 2.3],
+    "path": ["Start", "Condition", "PositiveBlock", "End"],
+    "path_cost": 2.5
+  }
+  
