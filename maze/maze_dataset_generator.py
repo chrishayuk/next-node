@@ -6,9 +6,9 @@ import networkx as nx
 import json
 import logging
 from tqdm import tqdm
-from maze_generator import generate_random_maze
-from maze_to_graph_converter import maze_to_graph
-from graph_to_json import graph_to_json
+from maze.maze_generator import generate_random_maze
+from maze.maze_to_graph_converter import maze_to_graph
+from maze.graph_to_json import graph_to_json
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")

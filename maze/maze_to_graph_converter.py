@@ -2,7 +2,7 @@
 import networkx as nx
 import argparse
 import json
-from maze_generator import generate_random_maze, print_maze
+from maze.maze_generator import generate_random_maze, print_maze
 
 def calculate_weight(node1, node2, label1, label2):
     """

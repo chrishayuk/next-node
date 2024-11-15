@@ -1,7 +1,7 @@
 import json
 import argparse
 from random import sample
-from maze_visualizer import visualize_maze, visualize_maze_ascii
+from maze.maze_visualizer import visualize_maze, visualize_maze_ascii
 
 def visualize_solution_ascii(maze, solution_path):
     """

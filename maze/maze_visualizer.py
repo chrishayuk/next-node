@@ -3,7 +3,7 @@ import json
 import matplotlib.pyplot as plt
 import argparse
 from colorama import Fore, Style, Back
-from maze_generator import generate_random_maze, print_maze
+from maze.maze_generator import generate_random_maze, print_maze
 
 def visualize_maze_ascii(maze):
     """
