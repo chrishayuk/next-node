@@ -13,6 +13,22 @@ if you want to save as json for testing later
 python src/maze/maze_generator.py --save-path "datasets/maze/testing/generated_maze.json"
 ```
 
+## Visualizing a Maze
+I've include some simple tools to be able to visualize maze inference test files and training files
+
+if you want to visualize a random maze:
+
+```bash
+python src/maze/maze_visualizer.py --json-file "datasets/maze/testing/generated_maze.json"
+```
+
+if you want to visualize an existing test file mazeL
+
+```bash
+python src/maze/maze_dataset_visualizer.py
+```
+
+
 ## Generating a Graph of a Maze
 the following generates a random maze, and converts to a graph
 

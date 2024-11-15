@@ -1,8 +1,8 @@
+# maze/maze_to_graph_converter.py
 import networkx as nx
 import argparse
 import json
 from maze_generator import generate_random_maze, print_maze
-
 
 def maze_to_graph(maze, label_map=None):
     """
