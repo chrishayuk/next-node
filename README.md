@@ -14,7 +14,7 @@ python src/maze/maze_generator.py --save-path "datasets/maze/testing/generated_m
 ```
 
 ## Visualizing a Maze
-I've include some simple tools to be able to visualize maze inference test files and training files
+I've include some simple tools to be able to visualize maze inference test files
 
 if you want to visualize a random maze:
 
@@ -22,12 +22,11 @@ if you want to visualize a random maze:
 python src/maze/maze_visualizer.py --json-file "datasets/maze/testing/generated_maze.json"
 ```
 
-if you want to visualize an existing test file mazeL
+if you want to visualize an existing test file maze
 
 ```bash
 python src/maze/maze_dataset_visualizer.py
 ```
-
 
 ## Generating a Graph of a Maze
 the following generates a random maze, and converts to a graph
@@ -42,26 +41,23 @@ or
 python src/maze/maze_to_graph_converter.py --json-file "datasets/maze/testing/generated_maze.json"
 ```
 
-
 ## Generating a Maze Dataset
+The following will generate a maze dataset for training.
 
 ```bash
-python src/maze/maze_dataset_generator.py --num-mazes 1000 --min-size 6 --max-size 12
+python src/maze/maze_dataset_generator.py --num-mazes 1 --min-size 6 --max-size 12
 ```
 
-## Visualizing Mazes
-I've include some simple tools to be able to visualize maze inference test files and training files
-
-### test files
-run the following
+### Validating a Generated Maze Dataset
+The following will validate a maze dataset for training.
 
 ```bash
-python maze/maze_dataset_visualizer.py --dataset-path datasets/maze/testing/simple_maze.json
+python src/maze/dataset_validator.py --jsonl-file datasets/maze/training/maze_training_data.jsonl
 ```
 
-### training files
-run the following
+### Visualizing Maze Datasets
+I've include some simple tools to be able to visualize maze training files
 
 ```bash
-python maze/maze_dataset_visualizer.py --dataset-path datasets/maze/training/maze_training_data.jsonl
+python src/maze/maze_dataset_visualizer.py --jsonl-file datasets/maze/training/maze_training_data.jsonl
 ```

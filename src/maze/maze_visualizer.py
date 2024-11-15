@@ -1,3 +1,4 @@
+# maze/maze_visualizer.py
 import json
 import matplotlib.pyplot as plt
 import argparse

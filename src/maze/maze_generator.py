@@ -1,3 +1,4 @@
+# maze/maze_generator.py
 import argparse
 import random
 import json

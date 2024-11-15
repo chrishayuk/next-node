@@ -4,9 +4,21 @@ import argparse
 import json
 from maze_generator import generate_random_maze, print_maze
 
+def calculate_weight(node1, node2, label1, label2):
+    """
+    Calculate the weight of an edge based on node labels.
+    - Regular walkable nodes have a weight of 1.0.
+    - Start and goal nodes are treated with normal weights.
+    - Walls have an infinite weight.
+    """
+    if label1 == 'wall' or label2 == 'wall':
+        return float('inf')  # Walls are impassable
+    return 1.0  # Default weight for walkable paths
+
+
 def maze_to_graph(maze, label_map=None):
     """
-    Convert a maze represented as a grid into a graph representation with labeled nodes.
+    Convert a maze represented as a grid into a graph representation with labeled nodes and weighted edges.
     Args:
         maze (list of list of str): 2D maze grid with characters representing cells.
         label_map (dict, optional): Mapping of maze symbols to labels (e.g., {'S': 'start', '.': 'walkable', 'G': 'goal'}).
@@ -32,32 +44,39 @@ def maze_to_graph(maze, label_map=None):
             node_label = label_map.get(cell, cell)
             G.add_node((r, c), label=node_label)
 
-            # If the current cell is a wall, skip connecting edges
+            # Skip walls for edge connections
             if cell == '#':
                 continue
 
             # Connect to top neighbor
-            if r > 0 and maze[r - 1][c] != '#':
-                G.add_edge((r, c), (r - 1, c))
+            if r > 0:
+                neighbor = maze[r - 1][c]
+                neighbor_label = label_map.get(neighbor, neighbor)
+                weight = calculate_weight((r, c), (r - 1, c), node_label, neighbor_label)
+                G.add_edge((r, c), (r - 1, c), weight=weight)
 
             # Connect to left neighbor
-            if c > 0 and maze[r][c - 1] != '#':
-                G.add_edge((r, c), (r, c - 1))
+            if c > 0:
+                neighbor = maze[r][c - 1]
+                neighbor_label = label_map.get(neighbor, neighbor)
+                weight = calculate_weight((r, c), (r, c - 1), node_label, neighbor_label)
+                G.add_edge((r, c), (r, c - 1), weight=weight)
 
     return G
 
 
 def print_graph(graph):
     """
-    Print the graph for debugging purposes.
+    Print the graph for debugging purposes, including edge weights.
     """
     print("\nGraph Nodes:")
     for node, data in graph.nodes(data=True):
         print(f"Node: {node}, Label: {data['label']}")
 
     print("\nGraph Edges:")
-    for source, target in graph.edges():
-        print(f"Edge: {source} -> {target}")
+    for source, target, data in graph.edges(data=True):
+        weight = "∞" if data["weight"] == float('inf') else data["weight"]
+        print(f"Edge: {source} -> {target}, Weight: {weight}")
 
 
 def load_maze_from_json(file_path):
@@ -97,3 +116,4 @@ if __name__ == "__main__":
 
     # Print the graph nodes and edges
     print_graph(graph)
+

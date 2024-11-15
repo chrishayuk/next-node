@@ -8,7 +8,7 @@ import logging
 from tqdm import tqdm
 from maze_generator import generate_random_maze
 from maze_to_graph_converter import maze_to_graph
-
+from graph_to_json import graph_to_json
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -31,13 +31,13 @@ class MazeDatasetGenerator:
         if not nx.has_path(graph, start, goal):
             raise ValueError(f"No path exists between start {start} and goal {goal}")
 
-    def generate_training_data(self, graph, start, goal):
+    def generate_context_embedding(self, maze):
         """
-        Generate shortest-path training data for the maze.
+        Generate a dummy embedding for the maze context representation.
+        Replace this with a model-based embedding if needed.
         """
-        path = nx.shortest_path(graph, source=start, target=goal)
-        training_data = [{"current": path[i], "next": path[i + 1]} for i in range(len(path) - 1)]
-        return training_data
+        random.seed(hash(str(maze)))
+        return [round(random.uniform(0.1, 2.0), 2) for _ in range(4)]
 
     def generate_single_maze(self, maze_id):
         """
@@ -57,16 +57,20 @@ class MazeDatasetGenerator:
                 # Validate connectivity
                 self.validate_maze_connectivity(graph, start, goal)
 
-                # Generate training data
-                training_data = self.generate_training_data(graph, start, goal)
+                # Compute shortest path
+                path = nx.shortest_path(graph, source=start, target=goal)
+                path_cost = nx.shortest_path_length(graph, source=start, target=goal, weight='weight')
+
+                # Convert graph to JSON format with embeddings and weights
+                graph_json = graph_to_json(graph, include_embeddings=True, compute_weights=True)
 
                 # Prepare dataset entry
                 dataset_entry = {
-                    "maze": maze,
-                    "start": start,
-                    "goal": goal,
-                    "graph": nx.node_link_data(graph),
-                    "training_data": training_data,
+                    "context_representation": maze,
+                    "graph": graph_json,
+                    "context_embedding": self.generate_context_embedding(maze),
+                    "path": [str(node) for node in path],
+                    "path_cost": round(path_cost, 2),
                 }
 
                 logger.info(f"Generated maze {maze_id}: Size ({rows}x{cols}), Start: {start}, Goal: {goal}")
@@ -83,9 +87,11 @@ class MazeDatasetGenerator:
             for i in tqdm(range(1, self.num_mazes + 1), desc="Generating mazes"):
                 try:
                     dataset_entry = self.generate_single_maze(i)
+                    # Write each JSON object followed by a newline
                     f.write(json.dumps(dataset_entry) + "\n")
                 except RuntimeError as e:
                     logger.error(f"Skipping maze {i} due to repeated errors: {e}")
+
 
 
 def main(num_mazes, min_size, max_size):
